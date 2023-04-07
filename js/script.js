@@ -3,6 +3,8 @@ const ctx = canvas.getContext('2d')
 
 let gameOn = false
 
+let score = 0
+
 let obstacleArray = []
 
 let animationId
@@ -25,7 +27,6 @@ const fabby = {
   y: 200,
   width: 80,
   height: 56,
-  speedX: 0,
   speedY: 0,
   gravity: .1,
   // gravitySpeed: 0,
@@ -51,19 +52,17 @@ const fabby = {
     switch (event.code) {
       case 'ArrowLeft':
         this.x -= 6
-
         break;
       case 'ArrowRight':
         this.x += 6
-
         break;
       case 'Space':
         if (this.speedY > -5) {
           this.speedY -= 1
         }
-        console.log("space");
         break;
     }
+
   }
 
 }
@@ -73,9 +72,10 @@ class Obstacle {
 
   constructor() {
     this.x = canvas.width;
-    this.gap = 100;
+    this.gap = 200;
     this.y = Math.random() * (canvas.height - this.gap);
-    this.bottomY = this.y + this.gap
+    this.bottomY = this.y + this.gap;
+    this.width = 138;
 
   }
 
@@ -84,16 +84,82 @@ class Obstacle {
   }
 
   draw() {
-    // ctx.drawImage(obstacleTopImg, this.x, this.y, )
+    ctx.drawImage(obstacleTopImg, this.x, this.y - obstacleTopImg.height)
     ctx.drawImage(obstacleBottomImg, this.x, this.bottomY)
   }
 
 }
 
 function generateObstacles() {
-  console.log("generating obstacle")
+
   obstacleArray.push(new Obstacle())
-  console.log("Obstacles", obstacleArray)
+
+}
+
+function gameOver() {
+  clearInterval(animationId)
+  clearInterval(obstacleId)
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = 'black'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = 'white'
+  ctx.font = '40px Arial'
+
+  if (score > 2) {
+    ctx.fillText('You win', 450, 250)
+    ctx.font = '32px Arial'
+    ctx.fillText(`Final Score: ${score}`, 450, 350)
+
+
+  } else {
+
+    ctx.fillText('You lose', 450, 250)
+    ctx.font = '32px Arial'
+    ctx.fillText(`Final Score: ${score}`, 450, 350)
+
+  }
+
+
+
+
+  obstacleArray = []
+  fabby.x = 400
+  fabby.y = 200
+  fabby.speedY = 0
+
+  gameOn = false
+
+  score = 0
+
+  console.log('game over')
+
+}
+
+
+
+function checkCollision(object) {
+
+
+  if (fabby.x < object.x + object.width &&
+    fabby.x + fabby.width > object.x) {
+    if (fabby.y <= object.y) {
+      fabby.y += 20
+    }
+    if (fabby.y + fabby.height >= object.bottomY) {
+      fabby.y -= 20
+    }
+  }
+
+  if (fabby.x < object.x + object.width &&
+    fabby.x + fabby.width > object.x &&
+    !
+    (
+      fabby.y > object.y &&
+      fabby.y + fabby.height < object.bottomY
+    )
+  ) {
+    gameOver()
+  }
 }
 
 
@@ -102,15 +168,35 @@ function animationLoop() {
   ctx.clearRect(0, 0, 1200, 600)
   ctx.drawImage(background, 0, 0, 1200, 600)
 
+
+  // fabby.update()
+
+  // obstacleArray.forEach((obstacle, i, arr) => {
+  //   obstacle.update()
+  //   obstacle.draw()
+  //   checkCollision(obstacle)
+  //   if (obstacle.x + obstacle.width < 0) {
+  //     arr.splice(i, 1)
+  //   }
+  // })
+
+  for (let i = 0; i < obstacleArray.length; i++) {
+    obstacleArray[i].update()
+    obstacleArray[i].draw()
+    checkCollision(obstacleArray[i])
+    if (obstacleArray[i].x + obstacleArray[i].width < 0) {
+      score += 1
+      obstacleArray.splice(i, 1)
+    }
+  }
+
   fabby.update()
 
-  obstacleArray.forEach((obstacle, i, arr) => {
-    if (obstacle.x < 0) {
-      arr.splice(i, 1)
-    }
-    obstacle.update()
-    obstacle.draw()
-  })
+  ctx.fillStyle = 'black'
+  ctx.fillRect(20, 20, 100, 50)
+  ctx.fillStyle = 'white'
+  ctx.font = '15px Arial'
+  ctx.fillText(`Score: ${score}`, 30, 50)
 
 }
 
@@ -149,8 +235,10 @@ window.onload = function () {
   };
 
   document.addEventListener("keydown", (event) => {
-
-    fabby.newPostion(event)
+    event.preventDefault()
+    if (gameOn) {
+      fabby.newPostion(event)
+    }
 
   });
 
